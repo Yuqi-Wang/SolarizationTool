@@ -1,0 +1,8 @@
+nicegui>=2.0.0
+uvicorn
+jinja2
+pydantic>=2
+numpy
+pandas
+pvlib
+plotly

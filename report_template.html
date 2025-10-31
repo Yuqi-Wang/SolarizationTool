@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Solarization Plan – {{ site_name or "Project" }}</title>
+  <style>
+    body{font-family: system-ui, Arial; margin:24px; }
+    h1,h2{margin:0 0 8px}
+    .grid{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
+    .card{border:1px solid #ddd; border-radius:8px; padding:12px}
+    table{width:100%; border-collapse:collapse}
+    td,th{border-bottom:1px solid #eee; padding:6px 4px; text-align:right}
+    th:first-child, td:first-child{text-align:left}
+    .muted{color:#666}
+  </style>
+</head>
+<body>
+  <h1>Solarization Planning Summary</h1>
+  <p class="muted">{{ today }}</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Inputs & Assumptions</h2>
+      <table>
+        <tr><th>Daily site energy (calc)</th><td>{{ results.E_daily|round(2) }} kWh/day</td></tr>
+        <tr><th>PR (effective)</th><td>{{ results.PR_eff|round(3) }}</td></tr>
+        <tr><th>Sun hours (PSH)</th><td>{{ inputs.PSH }}</td></tr>
+        <tr><th>Growth multiplier</th><td>{{ results.G|round(2) }}</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>PV & Storage</h2>
+      <table>
+        <tr><th>PV (raw)</th><td>{{ results.kWp_raw|round(2) }} kWp</td></tr>
+        <tr><th>PV (cap)</th><td>{{ results.kWp_cap|round(2) }} kWp</td></tr>
+        <tr><th>PV (final)</th><td><b>{{ results.kWp|round(2) }} kWp</b></td></tr>
+        <tr><th>Inverter (AC)</th><td>{{ results.P_inv|round(2) }} kW</td></tr>
+        <tr><th>Battery energy</th><td>{{ results.E_bat|round(2) }} kWh</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Outage & Autonomy</h2>
+      <table>
+        <tr><th>Critical fraction</th><td>{{ results.fcrit|round(2) }}</td></tr>
+        <tr><th>Autonomy (target)</th><td>{{ results.T_aut|round(2) }} h</td></tr>
+        <tr><th>Autonomy energy</th><td>{{ results.E_aut|round(2) }} kWh</td></tr>
+        <tr><th>Critical energy</th><td>{{ results.E_crit|round(2) }} kWh</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Annual & Carbon</h2>
+      <table>
+        <tr><th>PV energy</th><td>{{ results.E_pv_yr|round(0) }} kWh/yr</td></tr>
+        <tr><th>Load energy</th><td>{{ results.E_load_yr|round(0) }} kWh/yr</td></tr>
+        <tr><th>Matched energy</th><td>{{ results.E_matched|round(0) }} kWh/yr</td></tr>
+        <tr><th>Avoided emissions</th><td>{{ results.tCO2_yr|round(2) }} tCO₂/yr</td></tr>
+        <tr><th>Carbon credits</th><td>{{ results.credits_yr|round(2) }} tCO₂e/yr</td></tr>
+        <tr><th>Carbon value</th><td>${{ results.value_carbon_yr|round(2) }}/yr</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <p class="muted">Tip: Use your browser’s “Print → Save as PDF” to export this report.</p>
+</body>
+</html>
