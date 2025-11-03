@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Solarization Planner (Vue, single file)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://unpkg.com">
+  <style>
+    body{font-family:system-ui,Arial,sans-serif; margin:24px; line-height:1.35}
+    h1{margin:0 0 12px}
+    .grid{display:grid; grid-template-columns: repeat(auto-fit,minmax(320px,1fr)); gap:16px}
+    .card{border:1px solid #ddd; border-radius:10px; padding:14px}
+    label{display:block; font-size:12px; color:#555; margin-top:8px}
+    input,select{width:100%; padding:8px; border:1px solid #ccc; border-radius:8px}
+    table{width:100%; border-collapse:collapse; margin-top:8px}
+    th,td{border-bottom:1px solid #eee; padding:6px 4px; text-align:right}
+    th:first-child, td:first-child{text-align:left}
+    .btn{background:#2563eb; color:#fff; padding:8px 12px; border:none; border-radius:8px; cursor:pointer}
+    .muted{color:#666; font-size:12px}
+    .row{display:flex; gap:8px; flex-wrap:wrap}
+    .row > *{flex:1}
+  </style>
+</head>
+<body>
+  <h1>Solarization Planner</h1>
+  <p class="muted">Pure front-end Vue (no server). Works offline. You can “Save As…” to download.</p>
+
+  <div id="app">
+    <div class="grid">
+      <div class="card">
+        <h3>Demand</h3>
+        <label>Monthly bill (kWh)
+          <input type="number" v-model.number="i.E_bill_month_kwh" step="10" min="0">
+        </label>
+        <div class="row">
+          <div>
+            <label>Residents (day)
+              <input type="number" v-model.number="i.N_day" step="1" min="0">
+            </label>
+          </div>
+          <div>
+            <label>Residents (night)
+              <input type="number" v-model.number="i.N_night" step="1" min="0">
+            </label>
+          </div>
+        </div>
+        <label>Growth % (cap 100)
+          <input type="number" v-model.number="i.growth_pct" step="1" min="0" max="100">
+        </label>
+      </div>
+
+      <div class="card">
+        <h3>Water & Pump</h3>
+        <label>Water volume (L/month)
+          <input type="number" v-model.number="i.W_month_liters" step="1000" min="0">
+        </label>
+        <label>Head (m) (0 = use proxy)
+          <input type="number" v-model.number="headInput" step="1" min="0">
+        </label>
+        <div class="row">
+          <div>
+            <label>Pump efficiency (0–1)
+              <input type="number" v-model.number="i.pump_eff" step="0.05" min="0.1" max="0.9">
+            </label>
+          </div>
+          <div>
+            <label>Pump rated power (kW)
+              <input type="number" v-model.number="i.P_pump_kw" step="0.1" min="0.1">
+            </label>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Water priority score (1–10)
+              <input type="number" v-model.number="i.S_water" step="1" min="1" max="10">
+            </label>
+          </div>
+          <div>
+            <label>Water priority beta (0–0.5)
+              <input type="number" v-model.number="i.beta_water" step="0.05" min="0" max="0.5">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Outages & Critical</h3>
+        <label>Outage duration
+          <select v-model="i.outage_duration">
+            <option>&lt;30m</option><option>30-60m</option>
+            <option>1-2h</option><option>&gt;2h</option>
+          </select>
+        </label>
+        <label>Outage time
+          <select v-model="i.outage_time">
+            <option>Morning</option><option>Afternoon</option><option>Evening</option>
+          </select>
+        </label>
+        <label>Water autonomy bump max (h)
+          <input type="number" v-model.number="i.T_water_extra_h_max" step="0.5" min="0" max="2">
+        </label>
+        <label>
+          <input type="checkbox" v-model="i.essentials_listed"> Essentials listed for outage time
+        </label>
+      </div>
+
+      <div class="card">
+        <h3>PV & Site</h3>
+        <div class="row">
+          <div>
+            <label>PSH (sun hours)
+              <input type="number" v-model.number="i.PSH" step="0.1" min="2" max="7">
+            </label>
+          </div>
+          <div>
+            <label>Base PR
+              <input type="number" v-model.number="i.PR_base" step="0.01" min="0.6" max="0.9">
+            </label>
+          </div>
+          <div>
+            <label>Shading (%)
+              <input type="number" v-model.number="i.shading_pct" step="1" min="0" max="100">
+            </label>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Dust level
+              <select v-model="i.dust_level">
+                <option>Low</option><option>Medium</option><option>Heavy</option>
+              </select>
+            </label>
+          </div>
+          <div>
+            <label>Severe event
+              <select v-model="i.severe_event">
+                <option>None</option><option>Storm</option><option>DustStorm</option><option>HeavyRain</option>
+              </select>
+            </label>
+          </div>
+          <div>
+            <label>Event frequency
+              <select v-model="i.severe_freq">
+                <option>Rare</option><option>Seasonal</option><option>Often</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <label>Electricity priority score (1–10)
+          <input type="number" v-model.number="i.S_elec" step="1" min="1" max="10">
+        </label>
+        <div class="row">
+          <div>
+            <label>Roof area (m²)
+              <input type="number" v-model.number="i.A_roof_m2" step="10" min="0">
+            </label>
+          </div>
+          <div>
+            <label>Ground area (m²)
+              <input type="number" v-model.number="i.A_ground_m2" step="10" min="0">
+            </label>
+          </div>
+          <div>
+            <label>Power density (kWp/m²)
+              <input type="number" v-model.number="i.PD_kwp_per_m2" step="0.01" min="0.1" max="0.25">
+            </label>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>DC/AC ratio
+              <input type="number" v-model.number="i.DC_AC" step="0.05" min="1.0" max="1.6">
+            </label>
+          </div>
+          <div>
+            <label>Battery DoD
+              <input type="number" v-model.number="i.DoD" step="0.05" min="0.5" max="0.95">
+            </label>
+          </div>
+          <div>
+            <label>System efficiency
+              <input type="number" v-model.number="i.eta_sys" step="0.02" min="0.7" max="1.0">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Carbon</h3>
+        <label>Baseline
+          <select v-model="gridStr">
+            <option>Grid</option><option>Diesel</option>
+          </select>
+        </label>
+        <div class="row">
+          <div>
+            <label>EF grid (kgCO₂/kWh)
+              <input type="number" v-model.number="i.EF_grid" step="0.05" min="0">
+            </label>
+          </div>
+          <div>
+            <label>EF diesel (kgCO₂/kWh)
+              <input type="number" v-model.number="i.EF_diesel" step="0.05" min="0">
+            </label>
+          </div>
+          <div>
+            <label>Carbon price ($/tCO₂e)
+              <input type="number" v-model.number="i.p_CO2" step="1" min="0">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Results</h3>
+        <button class="btn" @click="calc">Run sizing</button>
+        <table v-if="r">
+          <tr><th>Daily energy (kWh/d)</th><td>{{ r.E_daily.toFixed(2) }}</td></tr>
+          <tr><th>Critical fraction</th><td>{{ r.fcrit.toFixed(2) }}</td></tr>
+          <tr><th>Autonomy (h)</th><td>{{ r.T_aut.toFixed(2) }}</td></tr>
+          <tr><th>Battery energy (kWh)</th><td>{{ r.E_bat.toFixed(2) }}</td></tr>
+          <tr><th>PV raw (kWp)</th><td>{{ r.kWp_raw.toFixed(2) }}</td></tr>
+          <tr><th>PV cap (kWp)</th><td>{{ r.kWp_cap.toFixed(2) }}</td></tr>
+          <tr><th>PV final (kWp)</th><td><b>{{ r.kWp.toFixed(2) }}</b></td></tr>
+          <tr><th>Inverter (kW)</th><td>{{ r.P_inv.toFixed(2) }}</td></tr>
+          <tr><th>PV energy (kWh/yr)</th><td>{{ Math.round(r.E_pv_yr) }}</td></tr>
+          <tr><th>Avoided CO₂ (t/yr)</th><td>{{ r.tCO2_yr.toFixed(2) }}</td></tr>
+          <tr><th>Carbon value ($/yr)</th><td>{{ r.value_carbon_yr.toFixed(2) }}</td></tr>
+        </table>
+        <p class="muted" v-else>Click “Run sizing” to see results.</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createApp, reactive } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+
+    const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+
+    createApp({
+      setup() {
+        const i = reactive({
+          // Demand
+          E_bill_month_kwh: 0,
+          N_day: 0, N_night: 0,
+          growth_pct: 0,
+          // Water
+          W_month_liters: 0,
+          head_m: null, pump_eff: 0.55, P_pump_kw: 0.75,
+          S_water: 7, beta_water: 0.3,
+          // Outages
+          outage_duration: "30-60m",
+          outage_time: "Afternoon",
+          T_water_extra_h_max: 1.0,
+          essentials_listed: false,
+          // PV
+          PSH: 4.5, PR_base: 0.78, shading_pct: 0,
+          dust_level: "Low", severe_event: "None", severe_freq: "Seasonal",
+          S_elec: 7,
+          // Site
+          A_roof_m2: 120, A_ground_m2: 0, PD_kwp_per_m2: 0.19,
+          DC_AC: 1.2, DoD: 0.8, eta_sys: 0.9,
+          // Carbon
+          grid_yes: true, EF_grid: 0.6, EF_diesel: 0.8, p_CO2: 6.0,
+          // Safety
+          growth_cap: 2.0,
+        });
+
+        // head input to allow 0 => null (proxy)
+        let headInput = 0;
+        const gridStr = Vue.ref("Grid");
+        let r = Vue.ref(null);
+
+        const daily_site = () =>
+          i.E_bill_month_kwh && i.E_bill_month_kwh > 0
+            ? i.E_bill_month_kwh / 30.0
+            : 2.8 * i.N_day + 1.4 * i.N_night;
+
+        const pump_energy = () => {
+          if (i.head_m !== null && i.head_m > 0) {
+            const rho = 1000.0, g = 9.81;
+            const m3_day = (i.W_month_liters / 30.0) / 1000.0;
+            const J = rho * g * i.head_m * m3_day;
+            return Math.max(J / (i.pump_eff * 3.6e6), 0.0);
+          }
+          const e_spec = 0.45; // kWh/m3 proxy
+          return (i.W_month_liters / 30000.0) * e_spec;
+        };
+
+        const water_factor = () => 1 + i.beta_water * Math.max(0, (i.S_water - 7) / 3);
+
+        const growth = () => Math.min(1 + i.growth_pct / 100, i.growth_cap);
+
+        const fcrit = () => clamp(0.30 + (i.essentials_listed ? 0.05 : 0), 0.20, 0.40);
+
+        const autonomy_hours = () => {
+          const baseMap = {"<30m":0.5,"30-60m":1.0,"1-2h":2.0,">2h":3.0};
+          const tMult = {"Morning":1.0,"Afternoon":1.2,"Evening":1.5};
+          const Tbase = baseMap[i.outage_duration] ?? 1.0;
+          const kappa = tMult[i.outage_time] ?? 1.0;
+          const T = Math.max(2.0, Tbase * kappa);
+          const bump = i.T_water_extra_h_max * Math.max(0, (i.S_water - 7) / 2.0);
+          return T + bump;
+        };
+
+        const PR_eff = () => i.PR_base * (1 - i.shading_pct / 100);
+
+        const M_dust = () => ({Low:0, Medium:0.05, Heavy:0.10}[i.dust_level] ?? 0);
+        const M_sev  = () => {
+          if (i.severe_event === "None") return 0;
+          const freq = {Rare:0.5, Seasonal:1.0, Often:1.5}[i.severe_freq] ?? 1.0;
+          return 0.03 * freq;
+        };
+        const M_pri  = () => (i.S_elec >= 8 ? 0.02 : 0) + (i.S_water >= 8 ? 0.02 : 0);
+        const M_tot  = () => Math.min(M_dust() + M_sev() + M_pri(), 0.20);
+
+        const calc = () => {
+          // sync head
+          i.head_m = (headInput && headInput > 0) ? headInput : null;
+          i.grid_yes = (gridStr.value === "Grid");
+
+          const E_site = daily_site();
+          const E_pump = pump_energy() * water_factor();
+          const G = growth();
+          const E_daily = (E_site + E_pump) * G;
+
+          const f = fcrit();
+          const Taut = autonomy_hours();
+          const E_aut = E_daily * (Taut / 24.0);
+          const E_crit = f * E_daily;
+          const E_need = Math.max(E_crit, E_aut);
+          const E_bat = E_need / (i.DoD * i.eta_sys);
+
+          const PR = PR_eff();
+          const kWp_raw = (E_daily / (i.PSH * PR)) * (1 + M_tot());
+          const kWp_cap = (i.A_roof_m2 + i.A_ground_m2) * i.PD_kwp_per_m2;
+          const kWp = Math.min(kWp_raw, kWp_cap);
+          const P_inv = kWp / i.DC_AC;
+
+          const E_pv_yr = kWp * i.PSH * PR * 365;
+          const E_load_yr = E_daily * 365;
+          const E_matched = Math.min(E_pv_yr, E_load_yr);
+          const EF = i.grid_yes ? i.EF_grid : i.EF_diesel;
+          const tCO2_yr = E_matched * EF / 1000.0;
+          const credits_yr = tCO2_yr;               // no buffer
+          const value_carbon_yr = credits_yr * i.p_CO2;
+
+          r.value = {
+            E_daily, fcrit: f, T_aut: Taut, E_aut, E_crit, E_bat,
+            PR_eff: PR, kWp_raw, kWp_cap, kWp, P_inv,
+            E_pv_yr, E_load_yr, E_matched, tCO2_yr, value_carbon_yr
+          };
+        };
+
+        return { i, r, calc, gridStr, headInput };
+      },
+    }).mount('#app');
+  </script>
+</body>
+</html>
